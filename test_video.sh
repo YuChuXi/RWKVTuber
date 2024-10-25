@@ -1,3 +1,3 @@
 #!/usr/bin/bash
 
-video/video.sh
+video/video.sh $1

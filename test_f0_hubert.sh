@@ -1,3 +1,3 @@
 
-python hubert/hubert.py dataset/samples
-python rmvpe/rmvpe.py dataset/samples
+python hubert/hubert.py dataset/$1
+python rmvpe/rmvpe.py dataset/$1

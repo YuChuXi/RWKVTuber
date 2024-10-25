@@ -1,5 +1,5 @@
 #!/usr/bin/bash
 
-mkdir dataset/samples/text/
+mkdir dataset/$1/text/
 
-python whisper/whisper.py dataset/samples/audio dataset/samples/text
+python whisper/whisper.py dataset/$1/audio dataset/$1/text
