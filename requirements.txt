@@ -10,3 +10,4 @@ fairseq
 ffmpeg-python
 transformers
 accelerate
+-r RWKV-PEFT/requirements.txt
