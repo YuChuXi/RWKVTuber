@@ -8,3 +8,5 @@ soundfile
 pyworld
 fairseq
 ffmpeg-python
+transformers
+accelerate

@@ -61,7 +61,7 @@ def go(wavPath, outPath):
             try:
                 if file.endswith(".wav"):
                     wav_path = "%s/%s" % (wavPath, file)
-                    out_path = "%s/%s" % (outPath, file.replace("wav", "npy"))
+                    out_path = "%s/%s" % (outPath, file + ".npy")
 
                     if os.path.exists(out_path):
                         continue

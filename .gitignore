@@ -163,5 +163,8 @@ cython_debug/
 
 *.pth
 *.pt
+*.npy
+*.npz
 *.mp4
 *.wav
+models_cache
