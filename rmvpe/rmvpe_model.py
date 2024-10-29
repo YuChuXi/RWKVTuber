@@ -536,7 +536,7 @@ class RMVPE:
         # f0 = np.array([10 * (2 ** (cent_pred / 1200)) if cent_pred else 0 for cent_pred in cents_pred])
         return f0
 
-    def infer_from_audio(self, audio, thred=0.03):
+    def infer_from_audio(self, audio, thred=0.03, decode = True):
         # torch.cuda.synchronize()
         # t0 = ttime()
         if not torch.is_tensor(audio):
@@ -551,6 +551,8 @@ class RMVPE:
         # torch.cuda.synchronize()
         # t2 = ttime()
         # print(234234,hidden.device.type)
+        if not decode:
+            return hidden.squeeze(0).cpu()
         if "privateuseone" not in str(self.device):
             hidden = hidden.squeeze(0).cpu().numpy()
         else:
@@ -558,6 +560,7 @@ class RMVPE:
         if self.is_half == True:
             hidden = hidden.astype("float32")
 
+       
         f0 = self.decode(hidden, thred=thred)
         # torch.cuda.synchronize()
         # t3 = ttime()

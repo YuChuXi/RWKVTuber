@@ -12,6 +12,7 @@ class TrainingArgs:
     data_file: str = ""
     data_type: str = "utf-8"
     vocab_size: int = 0
+    f0_range:int = 0
     ctx_len: int = 1024
     epoch_steps: int = 1000
     epoch_count: int = 500

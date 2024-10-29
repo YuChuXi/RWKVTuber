@@ -1,13 +1,14 @@
 import os
 import sys
+import tqdm
 import traceback
 import ffmpeg
 
 now_dir = os.getcwd()
 sys.path.append(now_dir)
 import logging
+import torch
 import numpy as np
-
 
 logging.getLogger("numba").setLevel(logging.WARNING)
 
@@ -50,18 +51,17 @@ class FeatureInput(object):
         self.f0_mel_min = 1127 * np.log(1 + self.f0_min / 700)
         self.f0_mel_max = 1127 * np.log(1 + self.f0_max / 700)
 
-    def compute_f0(self, path, f0_method):
+    def compute_f0(self, path, decode = True):
         x = load_audio(path, self.fs)
         # p_len = x.shape[0] // self.hop
-        if f0_method == "rmvpe":
-            if hasattr(self, "model_rmvpe") == False:
-                from rmvpe_model import RMVPE
+        if hasattr(self, "model_rmvpe") == False:
+            from rmvpe_model import RMVPE
 
-                print("Loading rmvpe model")
-                self.model_rmvpe = RMVPE(
-                    "rmvpe/rmvpe.pt", is_half=True, device="cuda"
-                )
-            f0 = self.model_rmvpe.infer_from_audio(x, thred=0.03)
+            print("Loading rmvpe model")
+            self.model_rmvpe = RMVPE(
+                "rmvpe/rmvpe.pt", is_half=True, device="cuda"
+            )
+        f0 = self.model_rmvpe.infer_from_audio(x, thred=0.03, decode=decode)
         return f0
 
     def coarse_f0(self, f0):
@@ -80,33 +80,23 @@ class FeatureInput(object):
         )
         return f0_coarse
 
-    def go(self, paths, f0_method):
+    def go(self, paths):
         if len(paths) == 0:
             print("no-f0-todo")
         else:
-            print("todo-f0-%s" % len(paths))
-            n = max(len(paths) // 5, 1)  # 每个进程最多打印5条
-            for idx, (inp_path, opt_path1, opt_path2) in enumerate(paths):
+            for idx, (inp_path, opt_path1) in tqdm.tqdm(enumerate(paths)):
                 try:
-                    if idx % n == 0:
-                        print("f0ing,now-%s,all-%s,-%s" % (idx, len(paths), inp_path))
                     if (
-                        os.path.exists(opt_path1 + ".npy") == True
-                        and os.path.exists(opt_path2 + ".npy") == True
+                        os.path.exists(opt_path1 + ".pth") == True
                     ):
                         continue
-                    featur_pit = self.compute_f0(inp_path, f0_method)
-                    np.save(
-                        opt_path2,
+                    featur_pit = self.compute_f0(inp_path, False)
+                    torch.save(
                         featur_pit,
-                        allow_pickle=False,
-                    )  # nsf
-                    coarse_pit = self.coarse_f0(featur_pit)
-                    np.save(
-                        opt_path1,
-                        coarse_pit,
-                        allow_pickle=False,
+                        opt_path1 + ".pth",
                     )  # ori
+                    if idx == 0:
+                        print(featur_pit, featur_pit.shape)
                 except:
                     print("f0fail-%s-%s-%s" % (idx, inp_path, traceback.format_exc()))
 
@@ -118,18 +108,15 @@ if __name__ == "__main__":
     paths = []
     inp_root = "%s/audio" % (exp_dir)
     opt_root1 = "%s/f0" % (exp_dir)
-    opt_root2 = "%s/f0nsf" % (exp_dir)
 
     os.makedirs(opt_root1, exist_ok=True)
-    os.makedirs(opt_root2, exist_ok=True)
     for name in sorted(list(os.listdir(inp_root))):
         inp_path = "%s/%s" % (inp_root, name)
         if "spec" in inp_path:
             continue
         opt_path1 = "%s/%s" % (opt_root1, name)
-        opt_path2 = "%s/%s" % (opt_root2, name)
-        paths.append([inp_path, opt_path1, opt_path2])
+        paths.append([inp_path, opt_path1])
     try:
-        featureInput.go(paths, "rmvpe")
+        featureInput.go(paths)
     except:
         print("f0_all_fail-%s" % (traceback.format_exc()))
