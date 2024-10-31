@@ -4,8 +4,3 @@
 [submodule "llama.cpp"]
 	path = llama.cpp
 	url = https://github.com/ggerganov/llama.cpp.git
-
-[submodule "RWKV_PEFT"]
-	path = RWKV_PEFT
-	url = https://github.com/uniartisan/RWKV-PEFT.git
-	branch = device-enhance
