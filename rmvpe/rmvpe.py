@@ -84,7 +84,7 @@ class FeatureInput(object):
         if len(paths) == 0:
             print("no-f0-todo")
         else:
-            for idx, (inp_path, opt_path1) in tqdm.tqdm(enumerate(paths)):
+            for idx, (inp_path, opt_path1) in enumerate(tqdm.tqdm(paths)):
                 try:
                     if (
                         os.path.exists(opt_path1 + ".pth") == True
