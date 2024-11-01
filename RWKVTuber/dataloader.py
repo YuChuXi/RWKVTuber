@@ -71,12 +71,14 @@ class RWKVTuberDataset(torch.utils.data.Dataset):
         sample[1] = sample[1][:1024, 1::]
         sample[2] = sample[2][:2048, ::].reshape(1024, 2 * 768)
 
-        return torch.cat(sample[:-1], dim = -1)        # f0 f0 f0 f0 face hubert hubert
+        return [torch.cat(sample[:-1], dim = -1), sample[-1]]        # f0 f0 f0 f0 face hubert hubert
     
     def deconv_sample(self, sample):
         
         return sample
 
 if __name__ == "__main__":
-    for idx, s in enumerate(tqdm.tqdm(RWKVTuberDataset())):
-        print(idx, s, s.shape)
+    
+    print(RWKVTuberDataset()[0])
+    #for idx, s in enumerate(tqdm.tqdm(RWKVTuberDataset())):
+    #    print(idx, s, s.shape)

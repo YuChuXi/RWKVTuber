@@ -10,6 +10,7 @@ import sys
 import numpy as np
 import torch
 import lightning as L
+import lightning as L
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 from lightning_utilities.core.rank_zero import rank_zero_info
@@ -32,6 +33,8 @@ def get_data_by_l_version(trainer: L.Trainer, args: TrainingArgs):
         train_data.real_epoch = trainer.current_epoch
         train_data.rank = trainer.global_rank
         train_data.world_size = trainer.world_size
+        train_data.setup(trainer.global_rank, trainer.world_size, 
+                        int(args.devices), args.data_shuffle)
         train_data = DataLoader(train_data, shuffle=args.data_shuffle, pin_memory=True, batch_size=args.micro_bsz, num_workers=1, persistent_workers=False, drop_last=True)
     
     elif L.__version__[0] == '2':
@@ -49,7 +52,7 @@ class GlobalIndexManager:
         
     def get_next_idx(self, idx_t):
         if self.shuffle:
-            idx = idx_t * self.device_num + self.rank
+            idx = idx_t
         else:
             idx = self.current_idx * self.device_num + self.rank 
             self.current_idx += 1
@@ -182,7 +185,6 @@ class MyDataset(Dataset):
 
     def __getitem__(self, idx):
         idx = self.index_manager.get_next_idx(idx_t=idx) if self.index_manager else idx
-
         args = self.args
         rank = self.rank
         epoch = self.real_epoch

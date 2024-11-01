@@ -1,7 +1,0 @@
-__pycache__/
-wandb/
-src/__pycache__/
-demo/
-fla/
-test/*
-.vscode/launch.json
