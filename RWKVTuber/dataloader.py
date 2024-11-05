@@ -3,6 +3,7 @@ import tqdm
 import numpy
 import torch
 from typing import Any
+from lrc_encoder import lrc_encoder
 
 feature_list = [
     ["f0", "wav.pth"],
@@ -63,6 +64,7 @@ class RWKVTuberDataset(torch.utils.data.Dataset):
         return features
     
     def enconv_sample(self, sample):
+        sample[3] = lrc_encoder(sample[3])
         if sample[1].shape[0] < 1024:  # pad
             sample[0] = torch.nn.functional.pad(sample[0], [0, 0, 0, 4096])
             sample[1] = torch.nn.functional.pad(sample[1], [0, 0, 0, 1024])
@@ -70,8 +72,8 @@ class RWKVTuberDataset(torch.utils.data.Dataset):
         sample[0] = sample[0][:4096, ::].reshape(1024, 4 * 360)
         sample[1] = sample[1][:1024, 1::]
         sample[2] = sample[2][:2048, ::].reshape(1024, 2 * 768)
-
-        return [torch.cat(sample[:-1], dim = -1), sample[-1]]        # f0 f0 f0 f0 face hubert hubert
+        sample[3] = sample[3][:1024]
+        return [torch.cat(sample[:-1], dim = -1), sample[3]]        # f0 f0 f0 f0 face hubert hubert
     
     def deconv_sample(self, sample):
         

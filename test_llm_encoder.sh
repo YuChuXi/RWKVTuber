@@ -1,1 +1,1 @@
-python RWKVTuber/llm_encoder.py
+python RWKVTuber/lrc_encoder.py

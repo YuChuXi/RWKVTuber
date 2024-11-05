@@ -1,12 +1,29 @@
 import sys
-print(sys.path)
-sys.path = sys.path.append("./RWKV_PEFT")
+import os
 
-from RWKV_PEFT.src.model import RWKV
-from RWKV_PEFT.src.utils import TOKENIZER
+os.environ["WKV"] = "fla"
+os.environ["RWKV_FLOAT_MODE"] = "bf16"
+os.environ["RWKV_VERSION"] = "x060"
+os.environ["RWKV_HEAD_SIZE_A"] = "64"
+os.environ["RWKV_JIT_ON"] = "true"
+os.environ["RWKV_TRAIN_TYPE"] = "none"
 
-tokrnizer = TOKENIZER("world")
-llm = RWKV()
+import torch
+import tqdm
+import copy
+from src.model import RWKV
+from src.args_type import TrainingArgs
+from json2binidx_tool.tools.rwkv_tokenizer import RWKV_TOKENIZER
+
+
+def __nop(ob):
+    return ob
+
+MyModule = torch.nn.Module
+MyFunction = __nop
+if os.environ["RWKV_JIT_ON"] == "1":
+    MyModule = torch.jit.ScriptModule
+    MyFunction = torch.jit.script_method
 
 sample = [
     [" President", (0.18, 0.64)],
@@ -121,10 +138,107 @@ sample = [
     ["-written", (40.62, 40.88)],
 ]
 
+class XHooker(MyModule):
+    def __init__(self, model: RWKV):
+        super().__init__()
+        self.layer_input = []  # L*(B, T, C)
+        self.layer_hooks = []
+        self.rwkv_model: RWKV = model
+    def start_hook(self):
+        self.rwkv_model.eval().cuda()
+        for nn in self.rwkv_model.blocks:
+            self.layer_hooks.append(nn.register_forward_hook(self.hooker))
 
-def conv_t2f(lrc):
-    for i in lrc:
-        i[1] = (i[1][0] * 25, i[1][1] * 25)
-    return lrc
+    @MyFunction
+    def hooker(self, model, input: torch.Tensor, output):
+        self.layer_input.append(input[0].cpu())
 
-print(conv_t2f(sample))
+    def clean_input(self):
+        self.layer_input.clear()
+        torch.cuda.empty_cache()
+
+    @MyFunction
+    def jit1(self, x):
+        self.rwkv_model(torch.tensor(x, device="cuda"))
+        L = len(self.layer_input)
+        B = self.layer_input[0].shape[0]
+        T = self.layer_input[0].shape[1]
+        C = self.layer_input[0].shape[2]
+        inputs = (
+            torch.cat(self.layer_input, dim=0)  # (L * B, T, C)
+            .reshape(
+                L,
+                B,
+                T,
+                C,
+            )  # (L, B, T, C)
+            .permute(1, 2, 0, 3)  # (B, T, L, C)
+            .reshape(
+                B,
+                T,
+                L * C,
+            )  # (B, T, L * C)
+        )
+        return inputs
+
+    def forward(self, x):
+        inputs = self.jit1(x)
+        self.clean_input()
+        return inputs
+
+
+args = TrainingArgs(
+    load_model="RWKVTuber/model/RWKV-x060-World-3B-v2.1-20240417-ctx4096.pth",
+    vocab_size=65536,
+    ctx_len=512,
+    n_embd=2560,
+    n_layer=32,
+    dim_att=2560,
+    dim_ffn=8960,
+    fla=True,
+)
+rwkv = XHooker(RWKV(args))
+rwkv.start_hook()
+
+tokenizer = RWKV_TOKENIZER("RWKVTuber/json2binidx_tool/rwkv_vocab_v20230424.txt")
+# llm = RWKV()
+
+
+def lrcs_encoder(lrcs):
+    B = len(lrcs)
+    idxss = []
+    for b in range(B):
+        lrc = lrcs[b]
+        idxs = []
+        for i in range(len(lrc)):
+            lrci = lrc[i]
+            lrci[0] = tokenizer.encode(lrci[0])
+            idxs += lrci[0]
+        idxss.append(idxs)
+
+    xs = rwkv(idxss)  # x(B, T) -> (B, T, L, C)
+    frame = torch.zeros((B, 1030, xs.shape[-1]))
+    xsppd = [0] * B
+    for b in range(B):
+        for i in range(len(lrc)):
+            lrci = lrc[i]
+            start = round(lrci[1][0] * 25)
+            for j in range(len(lrci[0])):
+                frame[b, start + j] = xs[b, xsppd[b]]
+                # print(start + j, frame[b, start + j], frame[b, start + j].shape)
+                xsppd[b] += 1
+
+    return frame
+
+
+def lrc_encoder(lrc):
+    return lrcs_encoder([lrc])[0]
+
+
+if __name__ == "__main__":
+    print()
+    B = 4
+    for i in tqdm.trange(512 // B):
+        lrcs_encoder([copy.deepcopy(sample) for i in range(B)])
+    for i in tqdm.trange(512):
+        lrc_encoder(copy.deepcopy(sample))

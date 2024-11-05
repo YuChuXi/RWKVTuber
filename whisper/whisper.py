@@ -41,7 +41,7 @@ def dlrc(inf, outf, bsz=4):
             [f"{inf}/{i}" for i in input],
             batch_size=lbsz,
             return_timestamps="word",
-            chunk_length_s=30,
+            chunk_length_s=24,
         )
         bar.update(lbsz)
         for i, o in zip(input, result):
