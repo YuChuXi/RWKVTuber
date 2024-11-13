@@ -421,3 +421,11 @@ class RWKV(pl.LightningModule):
         gc.collect()
         torch.cuda.empty_cache()
         return m
+
+class RWKVTuber(RWKV):
+    def __init__(self, args: TrainingArgs):
+        super().__init__()
+
+        self.emb = nn.Linear(args.n_embd, args.vocab_size, bias=False)
+
+        self.blocks = nn.ModuleList([Block(args, i) for i in range(args.n_layer)])

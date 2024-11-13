@@ -15,7 +15,7 @@ if __name__ == "__main__":
     from src.devices.check import get_accerator_and_strategy
     import json
     from src.args_type import TrainingArgs
-    from src.dataset import get_data_by_l_version, get_vocab_size
+    from src.dataset import RWKVTuberDataset
     rank_zero_info("########## work in progress ##########")
 
     parser = ArgumentParser()
@@ -254,7 +254,6 @@ if __name__ == "__main__":
     warnings.filterwarnings("ignore", ".*The progress bar already tracks a metric with the*")
     warnings.filterwarnings("ignore", r".*error: operation scheduled before its operands.*")
 
-    args.vocab_size = get_vocab_size(args)
     args.my_timestamp = datetime.datetime.today().strftime("%Y-%m-%d-%H-%M-%S")
     args.enable_checkpointing = False
     args.replace_sampler_ddp = False
@@ -264,6 +263,7 @@ if __name__ == "__main__":
     args.check_val_every_n_epoch = int(1e20)
     args.log_every_n_steps = int(1e20)
     args.max_epochs = -1  # continue forever
+    args.vocab_size = 768
     if args.dataload != 'get':
         args.max_epochs = args.epoch_count
     args.betas = (args.beta1, args.beta2)
@@ -384,10 +384,10 @@ if __name__ == "__main__":
             else:
                 print(f"{str(shape[0]).ljust(5)}       {n}")
  
-    train_data = get_data_by_l_version(trainer=trainer, args=args)
+    train_data = RWKVTuberDataset()
 
     if args.compile:
         model = torch.compile(model)
 
     trainer.fit(model, train_data)
-     print(" ✨✨✨ train finished ✨✨✨ ")
+    print(" ✨✨✨ train finished ✨✨✨ ")
