@@ -1,6 +1,6 @@
 import os
 import torch
-from src.model import RWKV
+from src.model import RWKVTuber
 from src.args_type import TrainingArgs
 from lightning_utilities.core.rank_zero import rank_zero_info
 from src.trainer import generate_init_weight
@@ -25,7 +25,7 @@ def load_peft_model(args: TrainingArgs):
         from src.rwkvLinear import BONE_CONFIG
         BONE_CONFIG["r"] = args.bone_config['bone_r']
 
-    model = RWKV(args)
+    model = RWKVTuber(args)
     print(model)
     if args.train_type == 'state':
         args.state_tune = True

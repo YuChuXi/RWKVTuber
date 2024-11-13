@@ -168,3 +168,4 @@ cython_debug/
 *.mp4
 *.wav
 models_cache
+wandb

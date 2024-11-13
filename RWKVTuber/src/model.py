@@ -264,7 +264,7 @@ class RWKV(pl.LightningModule):
     else:
         def forward(self, idx):
             args = self.args
-            B, T = idx.size()
+            B, T = idx.shape[0], idx.shape[0]
             assert T <= args.ctx_len, "Cannot forward, model ctx_len is exhausted."
 
             x = self.emb(idx)
@@ -329,10 +329,11 @@ class RWKV(pl.LightningModule):
 
                 logits = self(idx)
                 if sum_mask == mask.shape[0]:
-                    loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1))
+                    loss = F.mse_loss(logits, targets, size_average=True)
                     # print('rank', self.global_rank, 'loss', loss.item())
                 else:
-                    loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), reduction='none')
+                    #!!!!!!!!!!!!!!
+                    loss = (logits - targets) ** 2
                     # loss_raw = loss
                     loss = torch.sum(loss * mask) / sum_mask
 
@@ -424,8 +425,6 @@ class RWKV(pl.LightningModule):
 
 class RWKVTuber(RWKV):
     def __init__(self, args: TrainingArgs):
-        super().__init__()
+        super().__init__(args)
 
-        self.emb = nn.Linear(args.n_embd, args.vocab_size, bias=False)
-
-        self.blocks = nn.ModuleList([Block(args, i) for i in range(args.n_layer)])
+        self.emb = nn.Linear(args.vocab_size, args.n_embd, bias=False)

@@ -263,7 +263,7 @@ if __name__ == "__main__":
     args.check_val_every_n_epoch = int(1e20)
     args.log_every_n_steps = int(1e20)
     args.max_epochs = -1  # continue forever
-    args.vocab_size = 768
+    args.vocab_size = 1536
     if args.dataload != 'get':
         args.max_epochs = args.epoch_count
     args.betas = (args.beta1, args.beta2)
@@ -384,7 +384,7 @@ if __name__ == "__main__":
             else:
                 print(f"{str(shape[0]).ljust(5)}       {n}")
  
-    train_data = RWKVTuberDataset()
+    train_data = DataLoader(RWKVTuberDataset(), shuffle=args.data_shuffle, pin_memory=True, batch_size=args.micro_bsz, num_workers=1, persistent_workers=False, drop_last=True)
 
     if args.compile:
         model = torch.compile(model)

@@ -182,11 +182,10 @@ class train_callback(pl.Callback):
 
     def on_train_epoch_start(self, trainer, pl_module):
         args = self.args
-        dataset = trainer.train_dataloader.dataset
-        assert "MyDataset" in str(dataset)
-        dataset.global_rank = trainer.global_rank
-        dataset.real_epoch = int(args.epoch_begin + trainer.current_epoch)
-        dataset.world_size = trainer.world_size
+        #dataset = trainer.train_dataloader.dataset
+        #dataset.global_rank = trainer.global_rank
+        #dataset.real_epoch = int(args.epoch_begin + trainer.current_epoch)
+        #dataset.world_size = trainer.world_size
         # print(f'########## world_size {dataset.world_size} global_rank {dataset.global_rank} real_epoch {dataset.real_epoch} ##########')
 
     def on_train_epoch_end(self, trainer, pl_module):
