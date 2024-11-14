@@ -11,7 +11,7 @@ os.environ["RWKV_TRAIN_TYPE"] = "none"
 import torch
 import tqdm
 import copy
-from .model import RWKV
+from .llm_model import RWKV
 from .args_type import TrainingArgs
 from json2binidx_tool.tools.rwkv_tokenizer import RWKV_TOKENIZER
 

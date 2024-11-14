@@ -51,15 +51,39 @@ else:
     assert torch.cuda.is_available(), "CUDA is not available"
 
     HEAD_SIZE = int(os.environ["RWKV_HEAD_SIZE_A"])
+    cuda_cflag=(
+            [
+                "-xhip",
+                "-O3",
+                "-fopenmp",
+                "-ffast-math",
+                "-munsafe-fp-atomics",
+                "--gpu-max-threads-per-block=1024",
+                "--offload-arch=gfx1100",
+                "-DMAX_JOB=16",
+                f"-D_N_={HEAD_SIZE}",
+                f"-D_T_={int(os.environ['RWKV_CTXLEN'])}",
+            ]
+            if "Radeon" in torch.cuda.get_device_name(0)
+            else [
+                "-res-usage",
+                "--use_fast_math",
+                "-O3",
+                "-Xptxas -O3",
+                "--extra-device-vectorization",
+                f"-D_N_={HEAD_SIZE}",
+                f"-D_T_={int(os.environ['RWKV_CTXLEN'])}",
+            ]
+        )
 
     if 'x060' in os.environ["RWKV_VERSION"]:
         if (os.environ["RWKV_TRAIN_TYPE"] == 'infctx') or (os.environ["RWKV_TRAIN_TYPE"] == 'states'):
             if os.environ["RWKV_TRAIN_TYPE"] == 'infctx':
                 load(name="wkv6state", sources=["cuda/wkv6infctx_op.cpp", f"cuda/wkv6infctx_cuda.cu"], is_python_module=False,
-                    verbose=True, extra_cuda_cflags=["-res-usage", "--use_fast_math", "-O3", "-Xptxas -O3", "--extra-device-vectorization", f"-D_N_={HEAD_SIZE}", f"-D_T_={int(os.environ['RWKV_CTXLEN'])}"])
+                    verbose=True, extra_cuda_cflags=cuda_cflag)
             else:
                 load(name="wkv6state", sources=["cuda/wkv6state_op.cpp", f"cuda/wkv6state_cuda.cu"], is_python_module=False,
-                    verbose=True, extra_cuda_cflags=["-res-usage", "--use_fast_math", "-O3", "-Xptxas -O3", "--extra-device-vectorization", f"-D_N_={HEAD_SIZE}", f"-D_T_={int(os.environ['RWKV_CTXLEN'])}"])
+                    verbose=True, extra_cuda_cflags=cuda_cflag)
             class WKV_6STATE(torch.autograd.Function):
                 @staticmethod
                 def forward(ctx, B, T, C, H, r, k, v, w, u, s):
@@ -105,7 +129,7 @@ else:
             RUN_WKV6_GENERAL = RUN_CUDA_RWKV6_STATE
         else:
             load(name="wkv6", sources=["cuda/wkv6_op.cpp", f"cuda/wkv6_cuda.cu"], is_python_module=False,
-                verbose=True, extra_cuda_cflags=["-res-usage", "--use_fast_math", "-O3", "-Xptxas -O3", "--extra-device-vectorization", f"-D_N_={HEAD_SIZE}", f"-D_T_={int(os.environ['RWKV_CTXLEN'])}"])
+                verbose=True, extra_cuda_cflags=cuda_cflag)
 
             class WKV_6_NO_STATE(torch.autograd.Function):
                 @staticmethod
@@ -151,7 +175,7 @@ else:
             RUN_WKV6_GENERAL = RUN_CUDA_RWKV6
     else:
         wkv5_cuda = load(name="wkv5", sources=["cuda/wkv5_op.cpp", f"cuda/wkv5_cuda.cu"],
-                         verbose=True, extra_cuda_cflags=["-res-usage", "--use_fast_math", "-O3", "-Xptxas -O3", "--extra-device-vectorization", f"-D_N_={HEAD_SIZE}"])
+                         verbose=True, extra_cuda_cflags=cuda_cflag)
 
         class WKV_5(torch.autograd.Function):
             @staticmethod

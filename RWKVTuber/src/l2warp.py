@@ -91,16 +91,19 @@ elif os.environ.get("L2WRAP_SPARSE", "0") == "1":
 else:
     class L2Wrap(torch.autograd.Function):
         @staticmethod
-        def forward(ctx, loss, y):
-            ctx.save_for_backward(y)
+        def forward(ctx, loss, *args):
+            ctx.save_for_backward(*args)
             return loss
 
         @staticmethod
         def backward(ctx, grad_output):
-            y = ctx.saved_tensors[0]
-            # to encourage the logits to be close to 0
-            factor = 1e-4 / (y.shape[0] * y.shape[1])
-            maxx, ids = torch.max(y, -1, keepdim=True)
-            gy = torch.zeros_like(y)
-            gy.scatter_(-1, ids, maxx * factor)
-            return (grad_output, gy)
+            gys = [grad_output]
+            for y in ctx.saved_tensors:
+                # to encourage the logits to be close to 0
+                factor = 1e-4 / (y.shape[0] * y.shape[1])
+                maxx, ids = torch.max(y, -1, keepdim=True)
+                gy = torch.zeros_like(y)
+                gy.scatter_(-1, ids, maxx * factor)
+                gys.append(gy)
+
+            return tuple(gys)

@@ -106,3 +106,8 @@ class TrainingArgs:
     my_img_clip: int = field(init=False)
     my_img_clip_scale: int = field(init=False)
 
+    n_f0:int = 360 * 4
+    n_hubert:int = 768 * 2
+    n_face:int = 52
+    n_logit:int = 2048 * 32
+
