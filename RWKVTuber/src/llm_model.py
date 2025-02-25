@@ -34,7 +34,6 @@ if os.environ.get("RWKV_OPTIM", None) == 'adam_mini':
     from adam_mini import Adam_mini
 
 
-
 class RWKV(pl.LightningModule):
     def __init__(self, args: TrainingArgs):
         super().__init__()
